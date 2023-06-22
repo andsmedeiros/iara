@@ -18,23 +18,36 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/dist/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/dist/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/dist/lib)
 
+
 # Public libraries
+
+# Fugax
+set(fugax_source_files fugax/src/event.cpp fugax/src/event-loop.cpp)
+add_library(fugax ${fugax_source_files})
+target_include_directories(fugax PUBLIC fugax/include juro/include utils/include)
+target_link_libraries(fugax INTERFACE juro iara-utils)
+
+# Fuss
+add_library(fuss INTERFACE)
+target_include_directories(fuss INTERFACE fuss/include)
 
 # Juro
 set(juro_source_files juro/src/promise.cpp juro/src/compose/all.cpp)
 add_library(juro ${juro_source_files})
 target_include_directories(juro PUBLIC juro/include utils/include)
 
-# Loopr
-set(loopr_source_files loopr/src/event.cpp loopr/src/event-loop.cpp)
-add_library(loopr ${loopr_source_files})
-target_include_directories(loopr PUBLIC loopr/include juro/include utils/include)
-target_link_libraries(loopr INTERFACE juro)
+# Plumbing
+add_library(plumbing INTERFACE)
+target_link_libraries(plumbing INTERFACE iara-utils fuss)
+target_include_directories(plumbing INTERFACE plumbing/include)
 
 # Iara
-add_library(iara ${juro_source_files} ${loopr_source_files})
-target_include_directories(iara PUBLIC fuss/include loopr/include juro/include plumbing/include utils/include)
+add_library(iara ${juro_source_files} ${fugax_source_files})
+target_include_directories(iara PUBLIC fuss/include fugax/include juro/include plumbing/include utils/include)
 
+# Utils
+add_library(iara-utils INTERFACE)
+target_include_directories(iara-utils INTERFACE utils/include)
 
 # Tests
 

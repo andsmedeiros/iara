@@ -1,11 +1,11 @@
-#ifndef LOOPR_EVENT_HPP
-#define LOOPR_EVENT_HPP
+#ifndef FUGAX_EVENT_HPP
+#define FUGAX_EVENT_HPP
 
 #include <utils/types.hpp>
 #include <memory>
 #include <type_traits>
 
-namespace loopr {
+namespace fugax {
 using namespace utils::types;
 
 class event;
@@ -79,6 +79,6 @@ public:
     void reschedule(u32 time_point) noexcept;
 };
 
-} /* namespace loopr */
+} /* namespace fugax */
 
-#endif /* LOOPR_EVENT_HPP */
+#endif /* FUGAX_EVENT_HPP */

@@ -1,6 +1,6 @@
-#include "loopr/event.hpp"
+#include "fugax/event.hpp"
 
-namespace loopr {
+namespace fugax {
 
 void event_handler::operator()(event &ev) const { handler->invoke(ev); }
 
@@ -15,4 +15,4 @@ void event::fire() { handler(*this); }
 void event::cancel() noexcept { cancelled = true; }
 void event::reschedule(u32 time_point) noexcept { due_time = time_point; }
 
-} /* namespace loopr */
+} /* namespace fugax */

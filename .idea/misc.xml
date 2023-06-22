@@ -1,4 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="CMakeWorkspace" PROJECT_DIR="$PROJECT_DIR$" />
+  <component name="CidrRootsConfiguration">
+    <sourceRoots>
+      <file path="$PROJECT_DIR$/fugax/include" />
+      <file path="$PROJECT_DIR$/fugax/src" />
+      <file path="$PROJECT_DIR$/fuss/include" />
+      <file path="$PROJECT_DIR$/juro/include" />
+      <file path="$PROJECT_DIR$/juro/src" />
+      <file path="$PROJECT_DIR$/juro/test" />
+      <file path="$PROJECT_DIR$/plumbing/include" />
+      <file path="$PROJECT_DIR$/utils/include" />
+      <file path="$PROJECT_DIR$/utils/src" />
+    </sourceRoots>
+  </component>
 </project>

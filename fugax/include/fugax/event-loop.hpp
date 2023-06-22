@@ -1,3 +1,6 @@
+#ifndef FUGAX_EVENT_LOOP_HPP
+#define FUGAX_EVENT_LOOP_HPP
+
 #include <functional>
 #include <list>
 #include <map>
@@ -8,10 +11,7 @@
 #include <utils/types.hpp>
 #include "event.hpp"
 
-#ifndef LOOPR_EVENT_LOOP_HPP
-#define LOOPR_EVENT_LOOP_HPP
-
-namespace loopr {
+namespace fugax {
 using namespace utils::types;
 
 using event_listener = std::weak_ptr<event>;
@@ -56,11 +56,11 @@ template<class T>
 using timeout_promise_ptr = juro::promise_ptr<timeout_result<T>>;
 
 enum class schedule_policy { 
-    IMMEDIATE, 
-    DELAYED, 
-    RECURRING_IMMEDIATE, 
-    RECURRING_DELAYED,
-    ALWAYS
+    immediate,
+    delayed,
+    recurring_immediate,
+    recurring_delayed,
+    always
 };
 
 class event_loop {
@@ -82,7 +82,7 @@ public:
     event_listener always(event_handler functor);
 
 
-    juro::promise_ptr<loopr::timeout> wait(u32 delay);
+    juro::promise_ptr<fugax::timeout> wait(u32 delay);
 
     template<class ...T_args, class T_functor>
     auto debounce(u32 delay, T_functor &&functor) {
@@ -136,6 +136,6 @@ private:
     event_queue get_due_timers(std::uint32_t) noexcept;
 };
 
-} /* namespace loopr */
+} /* namespace fugax */
 
-#endif /* LOOPR_EVENT_LOOP_HPP */
+#endif /* FUGAX_EVENT_LOOP_HPP */

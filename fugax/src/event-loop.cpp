@@ -1,19 +1,19 @@
-#include "loopr/event-loop.hpp"
+#include "fugax/event-loop.hpp"
 
-namespace loopr {
+namespace fugax {
 
 event_listener event_loop::schedule(event_handler functor) {
-    return schedule(0, schedule_policy::IMMEDIATE, std::move(functor));
+    return schedule(0, schedule_policy::immediate, std::move(functor));
 }
 
 event_listener event_loop::schedule(u32 delay, event_handler functor) {
-    return schedule(delay, schedule_policy::DELAYED, std::move(functor));
+    return schedule(delay, schedule_policy::delayed, std::move(functor));
 }
 
 event_listener event_loop::schedule(u32 delay, bool recurring, event_handler functor) {
     auto policy = recurring ?
-        schedule_policy::RECURRING_DELAYED :
-        schedule_policy::DELAYED;
+        schedule_policy::recurring_delayed :
+        schedule_policy::delayed;
     return schedule(delay, policy, std::move(functor));
 }
 
@@ -24,19 +24,19 @@ event_listener event_loop::schedule(u32 delay, schedule_policy policy, event_han
     bool recurring;
 
     switch(policy) {
-    case schedule_policy::IMMEDIATE:
+    case schedule_policy::immediate:
         std::tie(slot, recurring, interval) = std::tuple { counter, false, 0 };
         break;
-    case schedule_policy::DELAYED:
+    case schedule_policy::delayed:
         std::tie(slot, recurring, interval) = std::tuple { counter + delay, false, 0 };
         break;
-    case schedule_policy::RECURRING_IMMEDIATE:
+    case schedule_policy::recurring_immediate:
         std::tie(slot, recurring, interval) = std::tuple { counter, true, delay };
         break;
-    case schedule_policy::RECURRING_DELAYED:
+    case schedule_policy::recurring_delayed:
         std::tie(slot, recurring, interval) = std::tuple { counter + delay, true, delay };
         break;
-    case schedule_policy::ALWAYS:
+    case schedule_policy::always:
         std::tie(slot, recurring, interval) = std::tuple { counter, true, 0 };
         break;
     default:
@@ -49,7 +49,7 @@ event_listener event_loop::schedule(u32 delay, schedule_policy policy, event_han
 }
 
 event_listener event_loop::always(event_handler functor) {
-    return schedule(0, schedule_policy::ALWAYS, std::move(functor));
+    return schedule(0, schedule_policy::always, std::move(functor));
 }
 
 void event_loop::process(std::uint32_t now) {
@@ -81,8 +81,8 @@ void event_loop::process(std::uint32_t now) {
     counter = now;
 }
 
-juro::promise_ptr<loopr::timeout> event_loop::wait(u32 delay) {
-    return juro::make_promise<loopr::timeout>([&] (const auto &promise) {
+juro::promise_ptr<fugax::timeout> event_loop::wait(u32 delay) {
+    return juro::make_promise<fugax::timeout>([&] (const auto &promise) {
         schedule(delay, [=] { promise->resolve(); });
     });
 }
@@ -107,4 +107,4 @@ event_loop::event_queue event_loop::get_due_timers(std::uint32_t now) noexcept {
     return queue;
 }
 
-} /* namespace loopr */
+} /* namespace fugax */
