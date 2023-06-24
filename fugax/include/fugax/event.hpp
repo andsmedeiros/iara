@@ -1,12 +1,12 @@
 #ifndef FUGAX_EVENT_HPP
 #define FUGAX_EVENT_HPP
 
-#include <utils/types.hpp>
 #include <memory>
 #include <type_traits>
+#include <config/fugax.hpp>
 
 namespace fugax {
-using namespace utils::types;
+using namespace config::fugax;
 
 class event;
 
@@ -65,18 +65,18 @@ class event_loop;
 class event {
     friend event_loop;
 
-    const u32 interval;
+    const time_type interval;
     const event_handler handler;
     const bool recurring;
-    u32 due_time;
+    time_type due_time;
     bool cancelled = false;
 
     void fire();
 
 public:
-    event(event_handler &&handler, bool recurring, u32 interval, u32 due_time);
+    event(event_handler &&handler, bool recurring, time_type interval, time_type due_time);
     void cancel() noexcept;
-    void reschedule(u32 time_point) noexcept;
+    void reschedule(time_type time_point) noexcept;
 };
 
 } /* namespace fugax */
