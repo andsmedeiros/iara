@@ -21,11 +21,24 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/dist/lib)
 
 # Public libraries
 
+# Config
+add_library(config INTERFACE)
+target_include_directories(config INTERFACE config/include)
+
 # Fugax
-set(fugax_source_files fugax/src/event.cpp fugax/src/event-loop.cpp)
+set(fugax_source_files
+    fugax/src/event.cpp
+    fugax/src/event-loop.cpp
+    fugax/src/event-guard.cpp
+)
 add_library(fugax ${fugax_source_files})
-target_include_directories(fugax PUBLIC fugax/include juro/include utils/include)
-target_link_libraries(fugax INTERFACE juro iara-utils)
+target_include_directories(fugax PUBLIC fugax/include)
+target_link_libraries(fugax PUBLIC config juro iara-utils)
+configure_file(
+    ${PROJECT_SOURCE_DIR}/config/include/config/fugax.hpp.in
+    ${PROJECT_SOURCE_DIR}/config/include/config/fugax.hpp
+    @ONLY
+)
 
 # Fuss
 add_library(fuss INTERFACE)
