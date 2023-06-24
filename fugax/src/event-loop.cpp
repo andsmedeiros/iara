@@ -6,21 +6,21 @@ event_listener event_loop::schedule(event_handler functor) {
     return schedule(0, schedule_policy::immediate, std::move(functor));
 }
 
-event_listener event_loop::schedule(u32 delay, event_handler functor) {
+event_listener event_loop::schedule(time_type delay, event_handler functor) {
     return schedule(delay, schedule_policy::delayed, std::move(functor));
 }
 
-event_listener event_loop::schedule(u32 delay, bool recurring, event_handler functor) {
+event_listener event_loop::schedule(time_type delay, bool recurring, event_handler functor) {
     auto policy = recurring ?
         schedule_policy::recurring_delayed :
         schedule_policy::delayed;
     return schedule(delay, policy, std::move(functor));
 }
 
-event_listener event_loop::schedule(u32 delay, schedule_policy policy, event_handler functor) {
+event_listener event_loop::schedule(time_type delay, schedule_policy policy, event_handler functor) {
     std::lock_guard _ { mutex };
 
-    u32 slot, interval;
+    time_type slot, interval;
     bool recurring;
 
     switch(policy) {
@@ -52,7 +52,7 @@ event_listener event_loop::always(event_handler functor) {
     return schedule(0, schedule_policy::always, std::move(functor));
 }
 
-void event_loop::process(std::uint32_t now) {
+void event_loop::process(time_type now) {
     auto queue = get_due_timers(now);
 
     auto entry = queue.begin();
@@ -81,14 +81,14 @@ void event_loop::process(std::uint32_t now) {
     counter = now;
 }
 
-juro::promise_ptr<fugax::timeout> event_loop::wait(u32 delay) {
+juro::promise_ptr<fugax::timeout> event_loop::wait(time_type delay) {
     return juro::make_promise<fugax::timeout>([&] (const auto &promise) {
         schedule(delay, [=] { promise->resolve(); });
     });
 }
 
 
-event_loop::event_queue event_loop::get_due_timers(std::uint32_t now) noexcept {
+event_loop::event_queue event_loop::get_due_timers(time_type now) noexcept {
     event_queue queue;
     std::lock_guard _ { mutex };
 
