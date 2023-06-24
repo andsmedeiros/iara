@@ -1,0 +1,50 @@
+/**
+ * @file config/include/config/fugax.hpp
+ * @brief Configuration options for Fugax
+ * @author André Medeiros
+ * @date 22/06/23
+ * @copyright 2023 (C) André Medeiros
+**/
+
+#ifndef FUGAX_CONFIG_HPP
+#define FUGAX_CONFIG_HPP
+
+#include <type_traits>
+
+#cmakedefine FUGAX_TIME_INCLUDE
+#ifdef FUGAX_TIME_INCLUDE
+/**
+ * @brief Header that provides the informed time typedef
+ */
+#include @FUGAX_TIME_INCLUDE@
+#endif /* FUGAX_TIME_INCLUDE */
+
+#cmakedefine FUGAX_MUTEX_INCLUDE
+#ifdef FUGAX_MUTEX_INCLUDE
+/**
+ * @brief Header that provides the informed mutex typedef
+ */
+#include @FUGAX_MUTEX_INCLUDE@
+#endif /* FUGAX_MUTEX_INCLUDE */
+
+namespace config::fugax {
+
+/**
+ * @brief The type of the internal counter; should alias an
+ * unsigned integer type
+ */
+using time_type = @FUGAX_TIME_TYPE@;
+static_assert(
+    std::is_unsigned_v<time_type>,
+    "`time_type` must be of unsigned integer type"
+);
+
+/**
+ * @brief The type of mutex used to lock the event loop;
+ * must meet `BasicLockable` requirements
+ */
+using mutex_type = @FUGAX_MUTEX_TYPE@;
+
+} /* namespace config::fugax */
+
+#endif /* FUGAX_CONFIG_HPP */
