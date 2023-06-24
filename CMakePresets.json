@@ -1,0 +1,28 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "Default configure preset",
+      "description": "A preset with sensible default values that can be overridden",
+      "cacheVariables": {
+        "FUGAX_TIME_INCLUDE": "<cstdint>",
+        "FUGAX_TIME_TYPE": "std::uint_fast32_t",
+        "FUGAX_MUTEX_INCLUDE": "<mutex>",
+          "FUGAX_MUTEX_TYPE": "std::mutex"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "default",
+      "displayName": "Default build preset",
+      "configurePreset": "default"
+    }
+  ]
+}
