@@ -1,6 +1,6 @@
 /**
- * @file fugax/include/event-guard.cpp
- * @brief 
+ * @file fugax/src/event-guard.cpp
+ * @brief Implementation of non-templated event guard functions
  * @author André Medeiros
  * @date 22/06/23
  * @copyright 2023 (C) André Medeiros

@@ -1,5 +1,5 @@
 /**
- * @file fugax/include/event-loop.hpp
+ * @file fugax/include/fugax/event-loop.hpp
  * @brief Contains definitions for the event loop and auxiliary constructs
  * @author André Medeiros
  * @date 22/06/23

@@ -1,14 +1,22 @@
-#include "fugax/event.hpp"
+/**
+ * @file fugax/src/event.cpp
+ * @brief Implementation of non-templated event functions
+ * @author André Medeiros
+ * @date 26/06/23
+ * @copyright 2023 (C) André Medeiros
+ */
+
+ #include "fugax/event.hpp"
 
 namespace fugax {
 
 void event_handler::operator()(event &ev) const { handler->invoke(ev); }
 
-event::event(event_handler &&handler, bool recurring, time_type interval, time_type due_time) :
-    interval { interval },
+event::event(event_handler &&handler, time_type interval, time_type due_time, bool recurring) :
     handler { std::forward<event_handler &&>(handler) },
-    recurring { recurring },
-    due_time { due_time }
+    interval { interval },
+    due_time { due_time },
+    recurring { recurring }
 {  }
 
 void event::fire() { handler(*this); }

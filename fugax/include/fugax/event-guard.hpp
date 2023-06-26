@@ -1,5 +1,5 @@
 /**
- * @file fugax/include/event-guard.hpp
+ * @file fugax/include/fugax/event-guard.hpp
  * @brief Contains definition of event guards, a RAII-enabled container for
  * event listeners
  * @author André Medeiros

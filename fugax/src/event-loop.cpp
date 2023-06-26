@@ -1,3 +1,11 @@
+/**
+ * @file fugax/src/event-loop.cpp
+ * @brief Implementation of non-templated event loop functions
+ * @author André Medeiros
+ * @date 26/06/23
+ * @copyright 2023 (C) André Medeiros
+ */
+
 #include "fugax/event-loop.hpp"
 
 namespace fugax {
