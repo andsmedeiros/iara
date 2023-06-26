@@ -280,12 +280,29 @@ public:
         return juro::race(promise, wait(delay));
     }
 
+    /**
+     * @brief Shortcut for creating a new promise and providing it to
+     * fugax::event_loop::timeout(time_type, const juro_promise_ptr<T_value> &)
+     * @tparam T_value The type of the promise being created
+     * @tparam T_launcher The type launcher functor of the promise being created
+     * @param delay Time limit to wait for the promise to resolve
+     * @param launcher The launcher functor to be supplied to
+     * juro::make_promise<T_value>
+     * @return A new race promise
+     * @see fugax::event_loop::timeout(time_type, const juro_promise_ptr<T_value> &)
+     */
     template<class T_value, class T_launcher>
     inline auto timeout(time_type delay, const T_launcher &launcher) {
         return timeout<T_value>(delay, juro::make_promise<T_value>(launcher));
     }
 
 private:
+    /**
+     * @brief Collects from the timer map all events that are due; time entries
+     * with a value different than the current counter will be deleted from the map
+     * @return All events whose scheduled time is less than or equal to the current
+     * counter as an `event_queue`
+     */
     event_queue get_due_timers(time_type) noexcept;
 };
 
