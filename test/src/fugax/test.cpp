@@ -168,5 +168,100 @@ SCENARIO("an event loop can be operated accordingly", "[fugax]") {
                 }
             });
         }
+
+        WHEN("a task is scheduled for immediate recurring execution") {
+            const auto interval = 10;
+            int execution_count = 0;
+            schedule_for_test([&] {
+                return loop.schedule(
+                    interval,
+                    fugax::schedule_policy::recurring_immediate,
+                    [&] { execution_count++; }
+                );
+            }, [&] (auto &listener) {
+
+                THEN("the task must not have been executed") {
+                    REQUIRE(execution_count == 0);
+                }
+
+                AND_WHEN("the event loop is stimulated to process immediate events") {
+                    loop.process(0);
+
+                    THEN("the task must have been executed once") {
+                        REQUIRE(execution_count == 1);
+
+                        AND_THEN("the event must still exist") {
+                            REQUIRE_FALSE(listener.expired());
+                        }
+                    }
+
+                    AND_WHEN("the task interval is elapsed") {
+                        loop.process(interval);
+
+                        THEN("the task must have been executed twice") {
+                            REQUIRE(execution_count == 2);
+
+                            AND_THEN("the event must still exist") {
+                                REQUIRE_FALSE(listener.expired());
+                            }
+                        }
+
+                        AND_WHEN("the task interval is elapsed again") {
+                            loop.process(2 * interval);
+
+                            THEN("the task must have been executed three times") {
+                                REQUIRE(execution_count == 3);
+
+                                AND_THEN("the event must still exist") {
+                                    REQUIRE_FALSE(listener.expired());
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        WHEN("a task is scheduled for continuous execution") {
+            int execution_count = 0;
+            fugax::time_type clock = 0;
+
+            schedule_for_test([&] {
+                return loop.always([&] { execution_count++; });
+            }, [&] (auto &listener) {
+                THEN("the task must not have been executed") {
+                    REQUIRE(execution_count == 0);
+                }
+
+                AND_WHEN("the event loop is stimulated with the current time value") {
+                    loop.process(clock);
+
+                    THEN("the task must have been executed once") {
+                        REQUIRE(execution_count == 1);
+
+                        AND_WHEN("the event loop is stimulated with the same time value once more") {
+                            loop.process(clock);
+
+                            THEN("the task must have been executed twice") {
+                                REQUIRE(execution_count == 2);
+                            }
+
+                            AND_WHEN("the event loop is stimulated with a very different time value") {
+                                clock += 100;
+                                loop.process(clock);
+
+                                THEN("the task must have been executed three times") {
+                                    REQUIRE(execution_count == 3);
+
+                                    AND_THEN("the event must still exist") {
+                                        REQUIRE_FALSE(listener.expired());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
     }
 }
