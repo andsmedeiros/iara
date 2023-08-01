@@ -28,31 +28,31 @@ event_listener event_loop::schedule(time_type delay, bool recurring, event_handl
 event_listener event_loop::schedule(time_type delay, schedule_policy policy, event_handler functor) {
     std::lock_guard _ { mutex };
 
-    time_type slot, interval;
+    time_type due_time, interval;
     bool recurring;
 
     switch(policy) {
     case schedule_policy::immediate:
-        std::tie(slot, recurring, interval) = std::tuple { counter, false, 0 };
+        std::tie(due_time, recurring, interval) = std::tuple { counter, false, 0 };
         break;
     case schedule_policy::delayed:
-        std::tie(slot, recurring, interval) = std::tuple { counter + delay, false, 0 };
+        std::tie(due_time, recurring, interval) = std::tuple { counter + delay, false, 0 };
         break;
     case schedule_policy::recurring_immediate:
-        std::tie(slot, recurring, interval) = std::tuple { counter, true, delay };
+        std::tie(due_time, recurring, interval) = std::tuple { counter, true, delay };
         break;
     case schedule_policy::recurring_delayed:
-        std::tie(slot, recurring, interval) = std::tuple { counter + delay, true, delay };
+        std::tie(due_time, recurring, interval) = std::tuple { counter + delay, true, delay };
         break;
     case schedule_policy::always:
-        std::tie(slot, recurring, interval) = std::tuple { counter, true, 0 };
+        std::tie(due_time, recurring, interval) = std::tuple { counter, true, 0 };
         break;
     default:
         return {  };
     }
 
-    return timers[slot].emplace_back(
-        std::make_shared<event>(std::move(functor), recurring, delay, slot)
+    return timers[due_time].emplace_back(
+        std::make_shared<event>(std::move(functor), interval, due_time, recurring)
     );
 }
 
@@ -75,7 +75,11 @@ void event_loop::process(time_type now) {
 
             if(event->recurring) {
                 std::lock_guard _ { mutex };
-                auto &target = timers[now + event->interval];
+
+                auto due_time = now + event->interval;
+                auto &target = timers[due_time];
+
+                event->due_time = due_time;
                 target.splice(target.end(), queue, removing);
             }
         }
