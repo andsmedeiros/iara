@@ -6,13 +6,13 @@
 #include "juro/promise.hpp"
 #include "juro/compose/all.hpp"
 #include "juro/compose/race.hpp"
-#include "helpers.hpp"
+#include "test/juro/helpers.hpp"
 
 using namespace juro::helpers;
 using namespace juro::test::helpers;
 using namespace std::string_literals;
 
-SCENARIO("promise can be created on every state") {
+SCENARIO("a promise can be created on every state", "[juro]") {
     GIVEN("a pending promise factory function") {
         WHEN("it is called with no parameter") {
             auto promise = juro::make_pending();
@@ -75,7 +75,7 @@ SCENARIO("promise can be created on every state") {
     }
 }
 
-SCENARIO("promises should resolve and reject accordingly") {
+SCENARIO("promises should resolve and reject accordingly", "[juro]") {
     GIVEN("a pending promise") {
         auto promise = juro::make_pending<bool>();
 
@@ -114,7 +114,7 @@ SCENARIO("promises should resolve and reject accordingly") {
     }
 }
 
-SCENARIO("promises must not be resettled") {
+SCENARIO("promises must not be resettled", "[juro]") {
     GIVEN("a resolved promise") {
         auto promise = juro::make_resolved();
 
@@ -172,7 +172,7 @@ SCENARIO("promises must not be resettled") {
     }
 }
 
-SCENARIO("promises should be chainable") {
+SCENARIO("promises should be chainable", "[juro]") {
     GIVEN("a pending promise") {
         auto promise = juro::make_pending<int>();
 
@@ -280,7 +280,7 @@ SCENARIO("promises should be chainable") {
     }
 }
 
-SCENARIO("promises should be composable") {
+SCENARIO("promises should be composable", "[juro]") {
     GIVEN("a promise composition function `all()`") {
         WHEN("called with three promises of different types") {
             auto p1 = juro::make_pending<int>();
@@ -508,12 +508,4 @@ SCENARIO("promises should be composable") {
             }
         }
     }
-
-//    GIVEN("An alias operator >> of a promise") {
-//        WHEN("Called with a single functor parameter") {
-//            auto promise = juro::make_pending<std::string>();
-//            std::string resolved_value;
-//            auto result = attempt([&] { promise >> [&] (auto &value) { resolved_value = value; }; });
-//        }
-//    }
 }
