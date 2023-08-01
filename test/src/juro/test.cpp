@@ -3,14 +3,14 @@
 #include <type_traits>
 #include <string>
 #include <catch2/catch_test_macros.hpp>
+#include <utils/test-helpers.hpp>
 #include "juro/promise.hpp"
 #include "juro/compose/all.hpp"
 #include "juro/compose/race.hpp"
-#include "test/juro/helpers.hpp"
 
 using namespace juro::helpers;
-using namespace juro::test::helpers;
 using namespace std::string_literals;
+using namespace utils::test_helpers;
 
 SCENARIO("a promise can be created on every state", "[juro]") {
     GIVEN("a pending promise factory function") {
