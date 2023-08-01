@@ -9,9 +9,9 @@ endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+set(CMAKE_CXX_FLAGS "-Wall -Wextra ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS_DEBUG "-g ${CMAKE_CXX_FLAGS_DEBUG}")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 ${CMAKE_CXX_FLAGS_RELEASE}")
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/dist/bin)
@@ -73,10 +73,14 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(Catch2)
 include(Catch)
 
+# Fugax tests
+set(fugax_test_source_files test/src/fugax/test.cpp)
+
 # Juro tests
-add_executable(test-juro juro/test/src/test.cpp)
-target_link_libraries(test-juro PRIVATE juro Catch2::Catch2WithMain)
-target_include_directories(test-juro PUBLIC juro/test/include)
-set_property(TARGET test-juro PROPERTY ARCHIVE_OUTPUT_DIRECTORY dist/bin/test)
-catch_discover_tests(test-juro)
+set(juro_test_source_files test/src/juro/test.cpp)
+
+add_executable(test ${fugax_test_source_files} ${juro_test_source_files})
+target_link_libraries(test PRIVATE juro fugax Catch2::Catch2WithMain)
+target_include_directories(test PUBLIC test/include)
+catch_discover_tests(test)
 
