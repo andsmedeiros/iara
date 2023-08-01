@@ -1,5 +1,5 @@
 /**
- * @file fugax/test/include/helpers.hpp
+ * @file test/include/test/fugax/helpers.hpp
  * @brief Helper functions and structures for testing purposes
  * @author André Medeiros
  * @date 31/07/23
@@ -37,6 +37,5 @@ void schedule_for_test(T_launcher &&launcher, T_then &&then) {
 }
 
 } /* namespace fugax::test::helpers */
-
 
 #endif /* FUGAX_TEST_HELPERS_HPP */
