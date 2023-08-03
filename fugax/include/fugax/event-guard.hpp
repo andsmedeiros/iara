@@ -56,6 +56,14 @@ public:
     {  }
 
     /**
+     * @brief Converting constructor for event listeners
+     * @param listener The event listener to store in the guard
+     */
+    inline event_guard(const event_listener &listener) noexcept :
+        listener { listener }
+    {  }
+
+    /**
      * @brief Upon destruction, the guard attempts to release its ownership
      * by calling `.release()`
      * @see `fugax::event_guard::release`
