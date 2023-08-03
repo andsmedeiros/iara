@@ -44,6 +44,13 @@ static_assert(
  * must meet `BasicLockable` requirements
  */
 using mutex_type = @FUGAX_MUTEX_TYPE@;
+static_assert(
+    std::conjunction_v<
+        std::is_invocable_r<void, decltype(&mutex_type::lock), mutex_type &>,
+        std::is_invocable_r<void, decltype(&mutex_type::unlock), mutex_type &>
+    >,
+    "The provided type does not meet `BasicLockable` requirements"
+);
 
 } /* namespace config::fugax */
 
