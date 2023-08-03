@@ -190,6 +190,12 @@ public:
      * @param time_point This event's new due time
      */
     void reschedule(time_type time_point) noexcept;
+
+    /**
+     * @brief Returns whether this event has been cancelled or not
+     * @return Whether the internal `cancelled` flag is set
+     */
+    inline bool is_cancelled() const noexcept { return cancelled; }
 };
 
 } /* namespace fugax */
