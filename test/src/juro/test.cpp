@@ -12,7 +12,7 @@ using namespace juro::helpers;
 using namespace std::string_literals;
 using namespace utils::test_helpers;
 
-SCENARIO("a promise can be created on every state", "[juro]") {
+SCENARIO("a promise can be created in every state", "[juro]") {
     GIVEN("a pending promise factory function") {
         WHEN("it is called with no parameter") {
             auto promise = juro::make_pending();
@@ -75,7 +75,7 @@ SCENARIO("a promise can be created on every state", "[juro]") {
     }
 }
 
-SCENARIO("promises should resolve and reject accordingly", "[juro]") {
+SCENARIO("a pending promise can be resolved and rejected accordingly", "[juro]") {
     GIVEN("a pending promise") {
         auto promise = juro::make_pending<bool>();
 
@@ -114,7 +114,51 @@ SCENARIO("promises should resolve and reject accordingly", "[juro]") {
     }
 }
 
-SCENARIO("promises must not be resettled", "[juro]") {
+SCENARIO("calling .then() on a settled promise calls the handler immediately", "[juro]") {
+    GIVEN("a resolved string promise") {
+        auto promise = juro::make_resolved("this promise is resolved"s);
+
+        WHEN(".then() is called on this promise") {
+            std::string resolved_string;
+            auto result = attempt([&] {
+                return promise->then([&] (auto result) {
+                    resolved_string = std::move(result);
+                });
+            });
+
+            THEN("no exception must have been thrown") {
+                REQUIRE_FALSE(result.has_error());
+            }
+
+            THEN("the settle handler must have been invoked") {
+                REQUIRE(result.holds_value<juro::promise_ptr<void>>());
+                REQUIRE(result.get_value()->is_resolved());
+                REQUIRE(resolved_string == "this promise is resolved"s);
+            }
+        }
+    }
+}
+
+SCENARIO("rejecting a promise without a settle handler throws an exception", "[juro]") {
+    GIVEN("a pending promise") {
+        auto promise = juro::make_pending();
+
+        WHEN("it is rejected with any value") {
+            auto result = attempt([&] {
+               promise->reject("rejected"s);
+            });
+
+            THEN("a juro::promise_error exception must be thrown") {
+                REQUIRE(result.has_error());
+                REQUIRE(result.holds_error<juro::promise_error>());
+                REQUIRE(result.get_error<juro::promise_error>().what() ==
+                    "Unhandled promise rejection"s);
+            }
+        }
+    }
+}
+
+SCENARIO("a settled promise cannot be resettled", "[juro]") {
     GIVEN("a resolved promise") {
         auto promise = juro::make_resolved();
 
@@ -172,7 +216,7 @@ SCENARIO("promises must not be resettled", "[juro]") {
     }
 }
 
-SCENARIO("promises should be chainable", "[juro]") {
+SCENARIO("multiple promises can be chained", "[juro]") {
     GIVEN("a pending promise") {
         auto promise = juro::make_pending<int>();
 
@@ -280,7 +324,7 @@ SCENARIO("promises should be chainable", "[juro]") {
     }
 }
 
-SCENARIO("promises should be composable", "[juro]") {
+SCENARIO("multiple promises can be composed", "[juro]") {
     GIVEN("a promise composition function `all()`") {
         WHEN("called with three promises of different types") {
             auto p1 = juro::make_pending<int>();
@@ -383,11 +427,138 @@ SCENARIO("promises should be composable", "[juro]") {
 
             THEN("it must not throw an exception") {
                 REQUIRE_FALSE(all_result.has_error());
+            }
 
-                AND_THEN("the type of the returned promise must also be void") {
-                    STATIC_REQUIRE(
-                        std::is_same_v<decltype(all_result)::value_type, juro::promise_ptr<void>>
-                    );
+            THEN("it must return a void promise") {
+                STATIC_REQUIRE(
+                    std::is_same_v<decltype(all_result)::value_type, juro::promise_ptr<void>>
+                );
+                REQUIRE(all_result.holds_value<juro::promise_ptr<void>>());
+
+                auto &promise = all_result.get_value();
+
+                AND_WHEN("one of the initial promises is resolved") {
+                    auto p1_result = attempt([&] {
+                        p1->resolve();
+                    });
+
+                    THEN("no exception must have been thrown") {
+                        REQUIRE_FALSE(p1_result.has_error());
+                    }
+
+                    THEN("the race promise must still be pending") {
+                        REQUIRE(promise->is_pending());
+                    }
+
+                    AND_WHEN("other promise is resolved") {
+                        auto p2_result = attempt([&] {
+                            p2->resolve();
+                        });
+
+                        THEN("no exception must have been thrown") {
+                            REQUIRE_FALSE(p2_result.has_error());
+                        }
+
+                        THEN("the race promise must remain pending") {
+                            REQUIRE(promise->is_pending());
+                        }
+
+
+                        AND_WHEN("the last promise is resolved") {
+                            auto p3_result = attempt([&] {
+                                p3->resolve();
+                            });
+
+                            THEN("no exception must have been thrown") {
+                                REQUIRE_FALSE(p3_result.has_error());
+                            }
+
+                            THEN("the race promise must have been resolved") {
+                                REQUIRE(promise->is_resolved());
+                            }
+                        }
+
+                        AND_WHEN("a rescue handler is attached and the last promise is rejected") {
+                            std::string rescued_string;
+                            promise->rescue([&] (auto &error) {
+                                try {
+                                    std::rethrow_exception(error);
+                                } catch(std::string &string) {
+                                    rescued_string = string;
+                                }
+                            });
+
+                            auto p3_result = attempt([&] {
+                                p3->reject("Rejected"s);
+                            });
+
+                            THEN("no exception must have been thrown") {
+                                REQUIRE_FALSE(p3_result.has_error());
+                            }
+
+                            THEN("the race promise must remain resolved") {
+                                REQUIRE(promise->is_rejected());
+                                REQUIRE(rescue(promise->get_error()).get_error<std::string>() ==
+                                    "Rejected"s
+                                );
+                            }
+                        }
+                    }
+
+                }
+
+                AND_WHEN("a rejection handler is attached and one of the initial promises is rejected") {
+                    std::string rejection_cause;
+                    promise->rescue([&] (auto error) {
+                        try {
+                            std::rethrow_exception(error);
+                        } catch(std::string &cause) {
+                            rejection_cause = cause;
+                        }
+                    });
+
+                    auto p1_result = attempt([&] {
+                        p1->reject("Promise 1 rejected"s);
+                    });
+
+                    THEN("no exception must have been thrown") {
+                        REQUIRE_FALSE(p1_result.has_error());
+                    }
+
+                    THEN("the race promise must have been rejected") {
+                        REQUIRE(promise->is_rejected());
+                        REQUIRE(rejection_cause == "Promise 1 rejected"s);
+                    }
+
+                    AND_WHEN("other promise is resolved") {
+                        auto p2_result = attempt([&] {
+                            p2->resolve();
+                        });
+
+                        THEN("no exception must have been thrown") {
+                            REQUIRE_FALSE(p2_result.has_error());
+                        }
+
+                        THEN("the race promise must remain rejected") {
+                            REQUIRE(promise->is_rejected());
+                            REQUIRE(rejection_cause == "Promise 1 rejected"s);
+                        }
+                    }
+
+                    AND_WHEN("other promise is rejected") {
+                        auto p3_result = attempt([&] {
+                            p3->reject("Promise 3 rejected"s);
+                        });
+
+                        THEN("no exception must have been thrown") {
+                            REQUIRE_FALSE(p3_result.has_error());
+                        }
+
+                        THEN("the race promise must remain rejected") {
+                            REQUIRE(promise->is_rejected());
+                            REQUIRE(rejection_cause == "Promise 1 rejected"s);
+                        }
+                    }
                 }
             }
         }
@@ -400,7 +571,9 @@ SCENARIO("promises should be composable", "[juro]") {
             auto p2 = juro::make_pending<std::string>();
             auto p3 = juro::make_pending();
 
-            auto race_result = attempt([&] { return juro::race(p1, p2, p3); });
+            auto race_result = attempt([&] {
+                return juro::race(p1, p2, p3);
+            });
 
             THEN("it must not throw an exception") {
                 REQUIRE_FALSE(race_result.has_error());
@@ -411,7 +584,102 @@ SCENARIO("promises should be composable", "[juro]") {
                 }
             }
 
-            AND_WHEN("a promise is resolved with some value") {
+            AND_WHEN("a void promise is resolved with some value") {
+                auto &promise = race_result.get_value();
+                p3->resolve();
+
+                THEN("the returned promise must be resolved with the same value") {
+                    REQUIRE(promise->is_resolved());
+                    REQUIRE(std::holds_alternative<void_type>(promise->get_value()));
+                }
+
+                AND_WHEN("another promise is resolved") {
+                    auto p2_result = attempt([&] {
+                        p2->resolve("Resolved"s);
+                    });
+
+                    THEN("no exception must be thrown") {
+                        REQUIRE_FALSE(p2_result.has_error());
+
+                        AND_THEN("the returned promise must retain its value") {
+                            REQUIRE(promise->is_resolved());
+                            REQUIRE(std::holds_alternative<void_type>(promise->get_value()));
+                        }
+                    }
+
+                    AND_WHEN("the last promise is rejected") {
+                        auto p1_result = attempt([&] { p1->reject(100); });
+
+                        THEN("no exception must be thrown") {
+                            REQUIRE_FALSE(p1_result.has_error());
+
+                            AND_THEN("the returned promise must retain its value") {
+                                REQUIRE(promise->is_resolved());
+                                REQUIRE(std::holds_alternative<void_type>(promise->get_value()));
+                            }
+                        }
+                    }
+                }
+            }
+
+            AND_WHEN("a void promise is rejected with some value") {
+                auto &promise = race_result.get_value();
+                auto p3_result = attempt([&] {
+                    p3->reject("Rejected"s);
+                });
+
+                THEN("a `promise_error` exception must be thrown") {
+                    REQUIRE(p3_result.has_error());
+                    REQUIRE(p3_result.holds_error<promise_error>());
+                    REQUIRE(p3_result.get_error<promise_error>().what() ==
+                        "Unhandled promise rejection"s
+                    );
+                }
+
+                THEN("the returned promise must be rejected with the same value") {
+                    REQUIRE(promise->is_rejected());
+                    REQUIRE(rescue(promise->get_error()).holds_error<std::string>());
+                    REQUIRE(rescue(promise->get_error())
+                        .get_error<std::string>() == "Rejected"s
+                    );
+                }
+
+                AND_WHEN("another promise is resolved") {
+                    auto p2_result = attempt([&] {
+                        p2->resolve("Resolved"s);
+                    });
+
+                    THEN("no exception must be thrown") {
+                        REQUIRE_FALSE(p2_result.has_error());
+
+                        AND_THEN("the returned promise must retain its value") {
+                            REQUIRE(promise->is_rejected());
+                            REQUIRE(rescue(promise->get_error()).holds_error<std::string>());
+                            REQUIRE(rescue(promise->get_error())
+                                .get_error<std::string>() == "Rejected"s
+                            );
+                        }
+                    }
+
+                    AND_WHEN("the last promise is rejected") {
+                        auto p1_result = attempt([&] { p1->reject(100); });
+
+                        THEN("no exception must be thrown") {
+                            REQUIRE_FALSE(p1_result.has_error());
+
+                            AND_THEN("the returned promise must retain its value") {
+                                REQUIRE(promise->is_rejected());
+                                REQUIRE(rescue(promise->get_error()).holds_error<std::string>());
+                                REQUIRE(rescue(promise->get_error())
+                                    .get_error<std::string>() == "Rejected"s
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+
+            AND_WHEN("a non-void promise is resolved with some value") {
                 auto &promise = race_result.get_value();
                 p2->resolve("Resolved"s);
 
@@ -430,7 +698,7 @@ SCENARIO("promises should be composable", "[juro]") {
                         AND_THEN("the returned promise must retain its value") {
                             REQUIRE(promise->is_resolved());
                             REQUIRE(std::holds_alternative<std::string>(promise->get_value()));
-                            REQUIRE(std::get<std::string>(promise->get_value()) == 
+                            REQUIRE(std::get<std::string>(promise->get_value()) ==
                                 "Resolved"s
                             );
                         }
@@ -445,7 +713,7 @@ SCENARIO("promises should be composable", "[juro]") {
                             AND_THEN("the returned promise must retain its value") {
                                 REQUIRE(promise->is_resolved());
                                 REQUIRE(std::holds_alternative<std::string>(promise->get_value()));
-                                REQUIRE(std::get<std::string>(promise->get_value()) == 
+                                REQUIRE(std::get<std::string>(promise->get_value()) ==
                                     "Resolved"s
                                 );
                             }
@@ -454,14 +722,14 @@ SCENARIO("promises should be composable", "[juro]") {
                 }
             }
 
-            AND_WHEN("a promise is rejected with some value") {
+            AND_WHEN("a non-void promise is rejected with some value") {
                 auto &promise = race_result.get_value();
                 auto p2_result = attempt([&] { p2->reject("Rejected"s); });
 
                 THEN("a `promise_error` exception must be thrown") {
                     REQUIRE(p2_result.has_error());
                     REQUIRE(p2_result.holds_error<promise_error>());
-                    REQUIRE(p2_result.get_error<promise_error>().what() == 
+                    REQUIRE(p2_result.get_error<promise_error>().what() ==
                         "Unhandled promise rejection"s
                     );
                 }
