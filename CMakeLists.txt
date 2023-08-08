@@ -9,10 +9,13 @@ endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_CXX_FLAGS "-Wall -Wextra ${CMAKE_CXX_FLAGS}")
-set(CMAKE_CXX_FLAGS_DEBUG "-g ${CMAKE_CXX_FLAGS_DEBUG}")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 ${CMAKE_CXX_FLAGS_RELEASE}")
 set(CMAKE_VERBOSE_MAKEFILE ON)
+
+if (MSVC)
+    add_compile_options(/W4)
+else()
+    add_compile_options(-Wall -Wextra -Wpedantic -Werror)
+endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/dist/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/dist/lib)
@@ -56,7 +59,7 @@ target_include_directories(plumbing INTERFACE plumbing/include)
 
 # Iara
 add_library(iara ${juro_source_files} ${fugax_source_files})
-target_include_directories(iara PUBLIC fuss/include fugax/include juro/include plumbing/include utils/include)
+target_include_directories(iara PUBLIC config/include fuss/include fugax/include juro/include plumbing/include utils/include)
 
 # Utils
 add_library(iara-utils INTERFACE)
@@ -71,7 +74,6 @@ FetchContent_Declare(
     GIT_TAG        v3.3.2
 )
 FetchContent_MakeAvailable(Catch2)
-include(Catch)
 
 # Fugax tests
 set(fugax_test_source_files test/src/fugax/test.cpp)
@@ -79,8 +81,11 @@ set(fugax_test_source_files test/src/fugax/test.cpp)
 # Juro tests
 set(juro_test_source_files test/src/juro/test.cpp)
 
-add_executable(test ${fugax_test_source_files} ${juro_test_source_files})
-target_link_libraries(test PRIVATE juro fugax Catch2::Catch2WithMain)
-target_include_directories(test PUBLIC test/include)
-catch_discover_tests(test)
+add_executable(iara-test ${fugax_test_source_files} ${juro_test_source_files})
+target_link_libraries(iara-test PRIVATE juro fugax Catch2::Catch2WithMain)
+target_include_directories(iara-test PUBLIC test/include)
 
+list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
+include(CTest)
+include(Catch)
+catch_discover_tests(iara-test)

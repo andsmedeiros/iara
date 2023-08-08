@@ -14,7 +14,7 @@
         "FUGAX_TIME_INCLUDE": "<cstdint>",
         "FUGAX_TIME_TYPE": "std::uint_fast32_t",
         "FUGAX_MUTEX_INCLUDE": "<mutex>",
-          "FUGAX_MUTEX_TYPE": "std::mutex"
+        "FUGAX_MUTEX_TYPE": "std::mutex"
       }
     }
   ],
