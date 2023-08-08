@@ -36,6 +36,25 @@ void schedule_for_test(T_launcher &&launcher, T_then &&then) {
     }
 }
 
+struct test_clock {
+    using time_type = fugax::time_type;
+    time_type counter = 0;
+
+    inline test_clock &advance(time_type by) noexcept {
+        counter += by;
+        return *this;
+    }
+
+    inline test_clock &regress(time_type by) noexcept {
+        counter -= by;
+        return *this;
+    }
+
+    constexpr operator time_type() const noexcept {
+        return counter;
+    }
+};
+
 } /* namespace fugax::test::helpers */
 
 #endif /* FUGAX_TEST_HELPERS_HPP */
