@@ -13,6 +13,7 @@
 #include "test/fugax/helpers.hpp"
 
 using namespace fugax::test::helpers;
+using namespace std::string_literals;
 using namespace utils::types;
 
 SCENARIO("an event loop can be created", "[fugax]") {
@@ -335,6 +336,135 @@ SCENARIO("an event loop can be operated accordingly", "[fugax]") {
                 }
             }
         }
+
+        WHEN("its .timeout() function is called with a promise as parameter") {
+            auto promise = juro::make_pending<std::string>();
+            auto timeout_result = attempt([&] {
+                return loop.timeout(100, promise);
+            });
+
+            THEN("no exception must have been thrown") {
+                REQUIRE_FALSE(timeout_result.has_error());
+            }
+
+            THEN("it must have returned a promise pointer to a timeout variant type") {
+                REQUIRE(timeout_result.holds_value<
+                    juro::promise_ptr<std::variant<std::string, fugax::timeout>>
+                >());
+
+                auto &timeout_promise = timeout_result.get_value();
+
+                AND_WHEN("settle handlers are attached to the timeout promise") {
+                    std::variant<std::string, fugax::timeout> resolved_value;
+                    std::exception_ptr rejected_value;
+
+                    timeout_promise->then(
+                        [&] (auto &result) {
+                            resolved_value = result;
+                        },
+                        [&] (auto &error) {
+                            rejected_value = error;
+                        }
+                    );
+
+                    AND_WHEN("the initial promise is resolved") {
+                        promise->resolve("resolved"s);
+
+                        THEN("the timeout promise must also have been resolved with the same value") {
+                            REQUIRE(timeout_promise->is_resolved());
+                            REQUIRE(std::holds_alternative<std::string>(resolved_value));
+                            REQUIRE(std::get<std::string>(resolved_value) == "resolved"s);
+                        }
+
+                    }
+
+                    AND_WHEN("the initial promise is rejected") {
+                        promise->reject("rejected"s);
+
+                        THEN("the timeout promise must also have been rejected with the same value") {
+                            REQUIRE(timeout_promise->is_rejected());
+                            REQUIRE(rescue(rejected_value).holds_error<std::string>());
+                            REQUIRE(rescue(rejected_value).get_error<std::string>() == "rejected"s);
+                        }
+                    }
+
+                    AND_WHEN("the timeout is reached") {
+                        loop.process(100);
+
+                        THEN("the timeout promise must have been resolved with a fugax::timeout value") {
+                            REQUIRE(timeout_promise->is_resolved());
+                            REQUIRE(std::holds_alternative<fugax::timeout>(resolved_value));
+                        }
+                    }
+                }
+            }
+        }
+
+        WHEN("its .timeout() function is called with a promise launcher as parameter") {
+            juro::promise_ptr<std::string> promise;
+            auto timeout_result = attempt([&] {
+                return loop.timeout<std::string>(100, [&] (auto &new_promise) {
+                    promise = new_promise;
+                });
+            });
+
+            THEN("no exception must have been thrown") {
+                REQUIRE_FALSE(timeout_result.has_error());
+            }
+
+            THEN("it must have returned a promise pointer to a timeout variant type") {
+                REQUIRE(timeout_result.holds_value<
+                    juro::promise_ptr<std::variant<std::string, fugax::timeout>>
+                >());
+
+                auto &timeout_promise = timeout_result.get_value();
+
+                AND_WHEN("settle handlers are attached to the timeout promise") {
+                    std::variant<std::string, fugax::timeout> resolved_value;
+                    std::exception_ptr rejected_value;
+
+                    timeout_promise->then(
+                        [&] (auto &result) {
+                            resolved_value = result;
+                        },
+                        [&] (auto &error) {
+                            rejected_value = error;
+                        }
+                    );
+
+                    AND_WHEN("the initial promise is resolved") {
+                        promise->resolve("resolved"s);
+
+                        THEN("the timeout promise must also have been resolved with the same value") {
+                            REQUIRE(timeout_promise->is_resolved());
+                            REQUIRE(std::holds_alternative<std::string>(resolved_value));
+                            REQUIRE(std::get<std::string>(resolved_value) == "resolved"s);
+                        }
+
+                    }
+
+                    AND_WHEN("the initial promise is rejected") {
+                        promise->reject("rejected"s);
+
+                        THEN("the timeout promise must also have been rejected with the same value") {
+                            REQUIRE(timeout_promise->is_rejected());
+                            REQUIRE(rescue(rejected_value).holds_error<std::string>());
+                            REQUIRE(rescue(rejected_value).get_error<std::string>() == "rejected"s);
+                        }
+                    }
+
+                    AND_WHEN("the timeout is reached") {
+                        loop.process(100);
+
+                        THEN("the timeout promise must have been resolved with a fugax::timeout value") {
+                            REQUIRE(timeout_promise->is_resolved());
+                            REQUIRE(std::holds_alternative<fugax::timeout>(resolved_value));
+                        }
+                    }
+                }
+            }
+
+        }
     }
 }
 
@@ -452,6 +582,198 @@ SCENARIO("an event guard can manage the lifetime of a scheduled event", "[fugax]
                     THEN("only task_2 must have been executed") {
                         REQUIRE_FALSE(task_1_executed);
                         REQUIRE(task_2_executed);
+                    }
+                }
+            }
+        }
+    }
+}
+
+SCENARIO("an event loop can debounce calls to a functor", "[fugax]") {
+    GIVEN("an event loop") {
+        fugax::event_loop loop;
+
+        WHEN("its .debounce() function is called with a functor and some delay as parameters") {
+            int counter = 0;
+            auto functor = [&] { counter++; };
+
+            auto debounce_result = attempt([&] {
+                return loop.debounce(100, functor);
+            });
+
+            THEN("no exception must have been thrown") {
+                REQUIRE_FALSE(debounce_result.has_error());
+            }
+
+            THEN("it must return a debounced functor with the same signature") {
+                using result_type = decltype(debounce_result);
+                STATIC_REQUIRE(std::is_invocable_r_v<void, result_type::value_type>);
+
+                auto &debounced = debounce_result.get_value();
+
+                AND_WHEN("the debounced functor is called") {
+                    debounced();
+
+                    THEN("the functor must not have been called") {
+                        REQUIRE(counter == 0);
+                    }
+
+                    AND_WHEN("more time than the debounce delay has passed") {
+                        test_clock clock;
+                        loop.process(clock.advance(101));
+
+                        THEN("the functor must have been called") {
+                            REQUIRE(counter == 1);
+                        }
+                    }
+                }
+
+                AND_WHEN(
+                    "the debounced functor is called multiple times, "\
+                    "over a time span smaller than the debounce delay"
+                ) {
+                    test_clock clock;
+
+                    for(int i = 0; i < 9; i++) {
+                        debounced();
+                        loop.process(clock.advance(10));
+                    }
+
+                    THEN("the functor must not have been called") {
+                        REQUIRE(counter == 0);
+                    }
+                }
+
+                AND_WHEN(
+                    "the debounced functor is called multiple times, "\
+                    "with an interval smaller than the debounce delay"
+                ) {
+                    test_clock clock;
+
+                    for(int i = 0; i < 9; i++) {
+                        debounced();
+                        loop.process(clock.advance(99));
+                    }
+
+                    THEN("the functor must not have been called") {
+                        REQUIRE(counter == 0);
+                    }
+                }
+
+                AND_WHEN(
+                    "the debounced functor is called multiple times, "\
+                    "with an interval greater than the debounce delay"
+                ) {
+                    test_clock clock;
+
+                    for(int i = 0; i < 9; i++) {
+                        debounced();
+                        loop.process(clock.advance(101));
+                    }
+
+                    THEN("the functor must have been executed that many times also") {
+                        REQUIRE(counter == 9);
+                    }
+                }
+            }
+        }
+    }
+}
+
+SCENARIO("an event loop can throttle calls to a functor", "[fugax]") {
+    GIVEN("an event loop") {
+        fugax::event_loop loop;
+
+        WHEN("its .throttle() function is called with a functor and some delay as parameters") {
+            int counter = 0;
+            auto functor = [&] { counter++; };
+
+            auto throttle_result = attempt([&] {
+                return loop.throttle(100, functor);
+            });
+
+            THEN("no exception must have been thrown") {
+                REQUIRE_FALSE(throttle_result.has_error());
+            }
+
+            THEN("it must return a functor with the same signature") {
+                using result_type = decltype(throttle_result);
+                STATIC_REQUIRE(std::is_invocable_r_v<void, result_type::value_type>);
+
+                auto &throttled = throttle_result.get_value();
+
+                AND_WHEN("the throttled functor is invoked") {
+                    throttled();
+
+                    THEN("the functor must have been executed") {
+                        REQUIRE(counter == 1);
+                    }
+
+                    AND_WHEN("the throttled functor is invoked again") {
+                        throttled();
+
+                        THEN("the functor must not have been executed this time") {
+                            REQUIRE(counter == 1);
+                        }
+                    }
+
+                    AND_WHEN(
+                        "the throttled functor is invoked multiple times, "\
+                        "over a time span smalled than the throttle delay"
+                    ) {
+                        test_clock clock;
+
+                        for(int i = 0; i < 9; i++) {
+                            throttled();
+                            loop.process(clock.advance(10));
+                        }
+
+                        THEN("the functor must not have been executed any more times") {
+                            REQUIRE(counter == 1);
+                        }
+                    }
+
+                    AND_WHEN(
+                        "the throttled functor is invoked multiple times, "\
+                        "with an interval smaller than the throttle delay"
+                    ) {
+                        test_clock clock;
+
+                        fugax::time_type last = 0;
+                        int expected = 1;
+
+                        for(int i = 0; i < 9; i++) {
+                            throttled();
+                            loop.process(clock.advance(99));
+
+                            if(clock - last > 100) {
+                                expected++;
+                                last = clock;
+                            }
+                        }
+
+                        THEN(
+                            "the functor must have been executed only so often as the "\
+                            "delay had passed repeatedly"
+                        ) {
+                            REQUIRE(counter == expected);
+                        }
+                    }
+
+                    AND_WHEN(
+                        "the throttled functor is invoked multiple times, "\
+                        "with an interval greater than the throttle delay"
+                    ) {
+                        test_clock clock;
+
+                        for(int i = 0; i < 9; i++) {
+                            throttled();
+                            loop.process(clock.advance(101));
+                        }
+
+                        THEN("the functor must have been executed that many times") {
+                            REQUIRE(counter == 9);
+                        }
                     }
                 }
             }
