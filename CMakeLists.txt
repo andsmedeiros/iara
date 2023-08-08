@@ -78,11 +78,18 @@ FetchContent_MakeAvailable(Catch2)
 # Fugax tests
 set(fugax_test_source_files test/src/fugax/test.cpp)
 
+# Fuss tests
+set(fuss_test_source_files test/src/fuss/test.cpp)
+
 # Juro tests
 set(juro_test_source_files test/src/juro/test.cpp)
 
-add_executable(iara-test ${fugax_test_source_files} ${juro_test_source_files})
-target_link_libraries(iara-test PRIVATE juro fugax Catch2::Catch2WithMain)
+add_executable(iara-test
+        ${fugax_test_source_files}
+        ${fuss_test_source_files}
+        ${juro_test_source_files}
+)
+target_link_libraries(iara-test PRIVATE juro fuss fugax Catch2::Catch2WithMain)
 target_include_directories(iara-test PUBLIC test/include)
 
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
