@@ -374,10 +374,30 @@ if(auto event = listener.lock()) {
 }
 ```
 
+Because events are destroyed when they are not needed any more, such as after any non-recurring 
+events are executed, locking the listener will fail in these cases and no illegal memory will 
+ever be accessed.
+
+Besides cancelling the event from outside, an event's task functor may receive an optional 
+`fugax::event &` parameter that directly exposes the event object, so it can be cancelled from 
+ within:
+
+```C++
+// schedules a recurring functor to be executed every 1000ms
+loop.schedule(1000, true, [&] (auto &event) {
+    
+    // the event must not run any more; cancel it and return
+    if(some_critical_async_assumption_has_changed) {
+        event.cancel();
+        return;
+    }
+    
+    do_something();
+});
+```
+
 When calling `.cancel()`, an event is marked as invalid and, when its due time arrives, instead of
-being processed, it will be simply discarded. Because events are destroyed when they are not needed
-any more, such as after any non-recurring events are executed, locking the listener will fail in
-these cases and no illegal memory will ever be accessed.
+being processed, it will be simply discarded.
 
 ### Event guards
 
