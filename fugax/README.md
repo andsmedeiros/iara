@@ -496,6 +496,10 @@ Otherwise, the event is rescheduled for execution after `delay` units of time fr
 occasion. This means that the initial functor will only get called after `delay` has passed without
 the debounced version being invoked.
 
+The debounced value gets stores inside the returned functor object and is updated each time it is
+invoked, overriding the last value. Because of this, when the initial functor is finally called, 
+it will receive the **last** debounced value every time.
+
 ```C++
 fugax::event_loop loop;
 
@@ -507,7 +511,7 @@ debounced(1); // event is scheduled
 debounced(2); // event is rescheduled
 debounced(3); // event is rescheduled
 
-loop.process(100); // will print "got 1"
+loop.process(100); // will print "got 3"
 
 debounced(4); // event is scheduled
 debounced(5); // event is rescheduled

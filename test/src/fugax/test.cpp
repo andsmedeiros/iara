@@ -677,6 +677,36 @@ SCENARIO("an event loop can debounce calls to a functor", "[fugax]") {
                 }
             }
         }
+
+        AND_GIVEN("a debounced functor that takes a string parameter") {
+            std::string debounced_string;
+            auto debounced = loop.debounce<std::string>(100, [&] (auto &value) {
+                debounced_string = value;
+            });
+
+            WHEN(
+                "the debounced functor is called multiple times with different values, " \
+                "with intervals smaller than the debounce delay"
+            ) {
+                test_clock clock;
+
+                debounced("one"s);
+                loop.process(clock.advance(50));
+
+                debounced("two"s);
+                loop.process(clock.advance(50));
+
+                debounced("three"s);
+
+                AND_WHEN("the debounce delay is allowed to pass") {
+                    loop.process(clock.advance(100));
+
+                    THEN("the initial functor must have been invoked with the last parameter passed") {
+                        REQUIRE(debounced_string == "three"s);
+                    }
+                }
+            }
+        }
     }
 }
 

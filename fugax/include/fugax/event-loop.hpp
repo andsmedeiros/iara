@@ -9,11 +9,14 @@
 #ifndef FUGAX_EVENT_LOOP_HPP
 #define FUGAX_EVENT_LOOP_HPP
 
-#include <functional>
 #include <list>
 #include <map>
 #include <memory>
 #include <mutex>
+#include <tuple>
+#include <optional>
+#include <string>
+
 #include <config/fugax.hpp>
 #include <juro/promise.hpp>
 #include <juro/compose/race.hpp>
@@ -219,17 +222,17 @@ public:
             this,
             delay,
             functor = std::forward<T_functor>(functor),
-            guard = std::make_shared<event_guard>()
-        ] (T_args ...args) {
+            guard = std::make_shared<event_guard>(),
+            stored_args = std::optional<std::tuple<T_args...>> {  }
+        ] (T_args ...args) mutable {
+            stored_args = std::make_tuple(std::move(args)...);
+
             if(const auto ev = guard->get().lock()) {
                 ev->reschedule(counter + delay);
             } else {
-                *guard = schedule(
-                    delay,
-                    [&, args = std::tuple { std::move(args)... }] {
-                        std::apply(functor, args);
-                    }
-                );
+                *guard = schedule(delay, [&] {
+                    std::apply(functor, *stored_args);
+                });
             }
         };
     }
